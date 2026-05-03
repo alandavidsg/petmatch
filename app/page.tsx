@@ -268,43 +268,52 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-function FaqCategory({ category, items }: { category: string; items: { q: string; a: string }[] }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="border border-gray-100 rounded-2xl overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-6 py-4 bg-white hover:bg-gray-50 transition text-left"
-      >
-        <span className="font-semibold text-[#1a1a2e] text-sm">{category}</span>
-        <ChevronDown size={18} className={`text-orange-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <div className="bg-white px-6 border-t border-gray-100">
-          {items.map((item) => <FaqItem key={item.q} q={item.q} a={item.a} />)}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function FaqPreview() {
+  const [activeCategory, setActiveCategory] = useState(faqData[0].category);
+  const active = faqData.find((s) => s.category === activeCategory)!;
+
   return (
-    <div className="mt-16">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-2xl font-semibold text-[#1a1a2e] flex items-center gap-2">
-            <HelpCircle size={22} className="text-orange-400" />
-            Preguntas frecuentes
-          </h2>
-          <p className="text-gray-400 text-sm mt-1">Todo lo que necesitas saber sobre PetMatch</p>
+    <div className="mt-20">
+      {/* Título centrado */}
+      <div className="text-center mb-10">
+        <div className="flex justify-center mb-3">
+          <div className="w-11 h-11 bg-orange-100 rounded-full flex items-center justify-center">
+            <HelpCircle size={22} className="text-orange-500" />
+          </div>
         </div>
-        <a href="/faq" className="text-orange-500 text-sm font-medium hover:underline">Ver todas →</a>
+        <h2 className="text-3xl font-semibold text-[#1a1a2e] mb-2">Preguntas frecuentes</h2>
+        <p className="text-gray-400 text-sm">Todo lo que necesitas saber sobre PetMatch</p>
       </div>
-      <div className="flex flex-col gap-3">
+
+      {/* Tabs horizontales */}
+      <div className="flex flex-wrap justify-center gap-2 mb-8">
         {faqData.map((section) => (
-          <FaqCategory key={section.category} category={section.category} items={section.items} />
+          <button
+            key={section.category}
+            onClick={() => setActiveCategory(section.category)}
+            className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
+              activeCategory === section.category
+                ? 'bg-orange-500 text-white border-orange-500'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-orange-400 hover:text-orange-500'
+            }`}
+          >
+            {section.category}
+          </button>
         ))}
+      </div>
+
+      {/* Preguntas de la categoría activa */}
+      <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-gray-100 px-6">
+        {active.items.map((item) => (
+          <FaqItem key={item.q} q={item.q} a={item.a} />
+        ))}
+      </div>
+
+      <div className="text-center mt-6">
+        <a href="/faq" className="text-orange-500 text-sm font-medium hover:underline">
+          Ver todas las preguntas →
+        </a>
       </div>
     </div>
   );
