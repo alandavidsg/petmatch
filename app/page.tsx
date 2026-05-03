@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { PawPrint } from 'lucide-react';
+import { PawPrint, ChevronDown, HelpCircle } from 'lucide-react';
 
 type Pet = {
   id: number;
@@ -208,6 +208,108 @@ function DonationBanner() {
   );
 }
 
+const faqData = [
+  {
+    category: 'Adopción',
+    items: [
+      { q: '¿Cómo puedo adoptar una mascota?', a: 'Entra al catálogo, elige la mascota que te interese y haz clic en "Quiero adoptar". Completa el formulario y nos pondremos en contacto contigo en 24–48 horas.' },
+      { q: '¿Tiene algún costo adoptar?', a: 'No, la adopción es completamente gratuita. PetMatch es una plataforma sin fines de lucro.' },
+      { q: '¿Cuánto demora el proceso de adopción?', a: 'Una vez enviada tu solicitud, te contactamos en 24 a 48 horas para coordinar el encuentro y confirmar la adopción.' },
+      { q: '¿Puedo adoptar si vivo en departamento?', a: 'Sí. Te pedimos que seas honesto en el formulario para encontrar la mascota que mejor se adapte a tu estilo de vida.' },
+    ],
+  },
+  {
+    category: 'Reportar mascotas',
+    items: [
+      { q: '¿Qué pasa después de que reporto una mascota?', a: 'La mascota queda publicada en el catálogo con su ubicación y características. Cualquier persona interesada puede solicitar su adopción de inmediato.' },
+      { q: '¿La IA siempre detecta bien la raza?', a: 'La IA hace una estimación basada en la foto. Siempre puedes corregir los datos antes de publicar.' },
+      { q: '¿Puedo reportar cualquier tipo de animal?', a: 'Sí, puedes reportar perros, gatos, pájaros, conejos y cualquier animal que esté en situación de calle.' },
+    ],
+  },
+  {
+    category: 'Mascotas perdidas',
+    items: [
+      { q: '¿Cómo busco a mi mascota perdida?', a: 'Ve a la sección "Perdidos", sube una foto y nuestra IA la comparará con todas las mascotas del catálogo para encontrar coincidencias.' },
+      { q: '¿Cómo funciona la recompensa?', a: 'Al reportar tu mascota como perdida puedes indicar un monto de recompensa. El pago se coordina directamente entre las personas involucradas.' },
+      { q: '¿Qué hago si encuentro una mascota perdida?', a: 'Búscala en la sección "Perdidos" o repórtala en el catálogo para que su dueño pueda encontrarla.' },
+    ],
+  },
+  {
+    category: 'Donaciones',
+    items: [
+      { q: '¿A dónde va mi donación?', a: 'Se destina a gastos veterinarios, alimentación y transporte de mascotas rescatadas mientras esperan ser adoptadas.' },
+      { q: '¿Puedo donar sin MercadoPago?', a: 'Sí, también aceptamos transferencias bancarias. En la página de donaciones encontrarás los datos bancarios.' },
+      { q: '¿Las donaciones tienen boleta o recibo?', a: 'Por el momento no emitimos boletas tributarias. Si necesitas un comprobante escríbenos a donaciones@petmatch.cl.' },
+    ],
+  },
+  {
+    category: 'Sobre PetMatch',
+    items: [
+      { q: '¿PetMatch tiene app móvil?', a: 'Aún no, pero el sitio está optimizado para móviles. Puedes agregarlo a tu pantalla de inicio para acceso rápido.' },
+      { q: '¿En qué regiones de Chile opera?', a: 'En todo Chile. Puedes filtrar por región en el catálogo para ver mascotas cerca de ti.' },
+      { q: '¿Cómo puedo contactarlos?', a: 'A través de la sección Contacto o al correo contacto@petmatch.cl. También estamos en Instagram, Facebook y TikTok.' },
+    ],
+  },
+];
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-gray-100 last:border-0">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-3.5 text-left gap-4"
+      >
+        <span className="text-sm text-[#1a1a2e]">{q}</span>
+        <ChevronDown size={15} className={`text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <p className="text-sm text-gray-500 leading-relaxed pb-4">{a}</p>}
+    </div>
+  );
+}
+
+function FaqCategory({ category, items }: { category: string; items: { q: string; a: string }[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border border-gray-100 rounded-2xl overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-6 py-4 bg-white hover:bg-gray-50 transition text-left"
+      >
+        <span className="font-semibold text-[#1a1a2e] text-sm">{category}</span>
+        <ChevronDown size={18} className={`text-orange-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="bg-white px-6 border-t border-gray-100">
+          {items.map((item) => <FaqItem key={item.q} q={item.q} a={item.a} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FaqPreview() {
+  return (
+    <div className="mt-16">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-2xl font-semibold text-[#1a1a2e] flex items-center gap-2">
+            <HelpCircle size={22} className="text-orange-400" />
+            Preguntas frecuentes
+          </h2>
+          <p className="text-gray-400 text-sm mt-1">Todo lo que necesitas saber sobre PetMatch</p>
+        </div>
+        <a href="/faq" className="text-orange-500 text-sm font-medium hover:underline">Ver todas →</a>
+      </div>
+      <div className="flex flex-col gap-3">
+        {faqData.map((section) => (
+          <FaqCategory key={section.category} category={section.category} items={section.items} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -350,6 +452,9 @@ export default function Home() {
 
         {/* Banner de donaciones */}
         <DonationBanner />
+
+        {/* FAQ */}
+        <FaqPreview />
       </section>
     </main>
   );
