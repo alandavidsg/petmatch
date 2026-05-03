@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { PawPrint } from 'lucide-react';
 
 type Pet = {
   id: number;
@@ -149,7 +150,7 @@ function DonationBanner() {
   return (
     <div className="mt-16 rounded-3xl bg-[#1a1a2e] px-8 py-10 flex flex-col md:flex-row items-center gap-8">
       <div className="flex-1 text-center md:text-left">
-        <div className="text-4xl mb-3">🐾</div>
+        <div className="flex mb-3"><PawPrint size={40} className="text-orange-400" /></div>
         <h3 className="text-white text-2xl font-semibold mb-2">Ayúdanos a rescatar más mascotas</h3>
         <p className="text-white/50 text-sm leading-relaxed">
           Con tu donación cubrimos veterinario, alimentación y transporte de mascotas rescatadas mientras encuentran un hogar.
