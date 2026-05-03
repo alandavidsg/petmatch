@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
+import { MapPin, Heart, AlertTriangle, PawPrint } from 'lucide-react';
 
 type Pet = {
   id: number;
@@ -132,7 +133,7 @@ function CatalogoContent() {
       <div className="max-w-5xl mx-auto px-8 py-8">
         {/* Filtro por región */}
         <div className="flex items-center gap-3 mb-8">
-          <span className="text-sm text-gray-400 flex-shrink-0">📍 Región:</span>
+          <span className="text-sm text-gray-400 flex-shrink-0 flex items-center gap-1"><MapPin size={14} /> Región:</span>
           <select
             value={activeCityFilter}
             onChange={(e) => setActiveCityFilter(e.target.value)}
@@ -149,7 +150,7 @@ function CatalogoContent() {
 
         {loading ? (
           <div className="text-center py-16 text-gray-400">
-            <div className="animate-bounce text-4xl mb-4">🐾</div>
+            <div className="flex justify-center mb-4"><PawPrint size={48} className="text-orange-300 animate-bounce" /></div>
             <p>Cargando mascotas...</p>
           </div>
         ) : (
@@ -161,20 +162,20 @@ function CatalogoContent() {
                     <img src={pet.image} alt={pet.name} className="h-44 w-full object-cover" />
                     {pet.urgente && (
                       <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
-                        🚨 URGENTE
+                        <AlertTriangle size={10} /> URGENTE
                       </span>
                     )}
                     <button
                       onClick={(e) => toggleFavorite(e, pet.id)}
                       className="absolute top-2 right-2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow hover:scale-110 transition"
                     >
-                      {favorites.includes(pet.id) ? '❤️' : '🤍'}
+                      <Heart size={16} className={favorites.includes(pet.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'} />
                     </button>
                   </div>
                   <div className="p-4">
                     <div className="font-semibold text-[#1a1a2e] text-base">{pet.name}</div>
                     <div className="text-sm text-gray-400 mt-1">{pet.breed} · {pet.age}</div>
-                    <div className="text-xs text-gray-400 mt-2">📍 {pet.location}</div>
+                    <div className="text-xs text-gray-400 mt-2 flex items-center gap-1"><MapPin size={11} />{pet.location}</div>
                     <span className="inline-block mt-3 text-xs px-3 py-1 rounded-full bg-orange-50 text-orange-500 font-medium">
                       {pet.type}
                     </span>
@@ -185,7 +186,7 @@ function CatalogoContent() {
 
             {filteredPets.length === 0 && (
               <div className="text-center py-16 text-gray-400">
-                <div className="text-5xl mb-4">🐾</div>
+                <div className="flex justify-center mb-4"><PawPrint size={48} className="text-gray-300" /></div>
                 <p>No hay mascotas con estos filtros</p>
                 {(activeFilter !== 'todos' || activeCityFilter !== 'todas') && (
                   <button
@@ -206,7 +207,7 @@ function CatalogoContent() {
 
 export default function CatalogoPage() {
   return (
-    <Suspense fallback={<div className="text-center py-20 text-gray-400"><div className="animate-bounce text-4xl mb-4">🐾</div><p>Cargando...</p></div>}>
+    <Suspense fallback={<div className="text-center py-20 text-gray-400"><div className="flex justify-center mb-4"><PawPrint size={48} className="text-orange-300 animate-bounce" /></div><p>Cargando...</p></div>}>
       <CatalogoContent />
     </Suspense>
   );

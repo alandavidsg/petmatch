@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
+import { ArrowLeft, Camera, Home, MapPin, Phone, CheckCircle, Sparkles, PenLine } from 'lucide-react';
 
 export default function ReportarPage() {
   const router = useRouter();
@@ -209,7 +210,7 @@ export default function ReportarPage() {
 
         {submitted ? (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">✅</div>
+            <div className="flex justify-center mb-4"><CheckCircle size={64} className="text-green-500" /></div>
             <h2 className="text-xl font-semibold text-[#1a1a2e] mb-2">
               ¡{(mode === 'calle' ? (form.raza || form.tipo) : (adoptForm.raza || adoptForm.tipo)) || 'Mascota'} publicado!
             </h2>
@@ -221,7 +222,7 @@ export default function ReportarPage() {
               onClick={() => setMode('calle')}
               className="bg-white border border-gray-100 rounded-2xl p-6 text-left hover:border-orange-300 hover:shadow-md transition"
             >
-              <div className="text-4xl mb-3">📷</div>
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-3"><Camera size={24} className="text-orange-500" /></div>
               <h2 className="text-lg font-semibold text-[#1a1a2e] mb-1">Vi una mascota en la calle</h2>
               <p className="text-gray-400 text-sm">Reporta una mascota callejera. La IA detectará su raza y características.</p>
             </button>
@@ -229,14 +230,14 @@ export default function ReportarPage() {
               onClick={() => setMode('adopcion')}
               className="bg-white border border-gray-100 rounded-2xl p-6 text-left hover:border-orange-300 hover:shadow-md transition"
             >
-              <div className="text-4xl mb-3">🏠</div>
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-3"><Home size={24} className="text-orange-500" /></div>
               <h2 className="text-lg font-semibold text-[#1a1a2e] mb-1">Quiero dar en adopción mi mascota</h2>
               <p className="text-gray-400 text-sm">Publica tu mascota para encontrarle un nuevo hogar. Tú ingresas sus datos.</p>
             </button>
           </div>
         ) : mode === 'adopcion' ? (
           <>
-            <button onClick={() => setMode('elegir')} className="text-gray-400 text-sm mb-6 flex items-center gap-1">← Volver</button>
+            <button onClick={() => setMode('elegir')} className="text-gray-400 text-sm mb-6 flex items-center gap-1"><ArrowLeft size={16} /> Volver</button>
 
             {/* Inputs ocultos */}
             <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFirstPhoto} />
@@ -245,7 +246,7 @@ export default function ReportarPage() {
 
             {!hasPhotos ? (
               <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center mb-6">
-                <div className="text-5xl mb-4">📸</div>
+                <div className="flex justify-center mb-4"><Camera size={48} className="text-gray-300" /></div>
                 <p className="text-gray-300 text-xs mb-5">Sube fotos de tu mascota</p>
                 <div className="flex gap-3">
                   <button type="button" onClick={() => fileRef.current?.click()} className="flex-1 bg-orange-500 text-white rounded-xl py-3 text-sm font-medium">Sacar foto</button>
@@ -272,7 +273,7 @@ export default function ReportarPage() {
             )}
 
             <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5 mb-6">
-              <p className="text-xs font-medium text-orange-500 mb-4">🏠 Datos de tu mascota</p>
+              <p className="text-xs font-medium text-orange-500 mb-4 flex items-center gap-1"><PenLine size={13} /> Datos de tu mascota</p>
               <div className="flex flex-col gap-3">
                 {[
                   { label: 'Nombre de la mascota', key: 'nombre', placeholder: 'Ej: Firulais' },
@@ -320,7 +321,7 @@ export default function ReportarPage() {
                 ))}
               </div>
 
-              <p className="text-xs font-medium text-orange-500 mt-5 mb-4">📞 Tus datos de contacto</p>
+              <p className="text-xs font-medium text-orange-500 mt-5 mb-4 flex items-center gap-1"><Phone size={13} /> Tus datos de contacto</p>
               <div className="flex flex-col gap-3">
                 {[
                   { label: 'Tu nombre', key: 'contactoNombre', placeholder: 'Nombre completo' },
@@ -335,10 +336,10 @@ export default function ReportarPage() {
               </div>
 
               <div className="mt-4">
-                <label className="text-xs text-gray-400 block mb-1">📍 Ubicación</label>
+                <label className="text-xs text-gray-400 block mb-1 flex items-center gap-1"><MapPin size={11} /> Ubicación</label>
                 <div className="flex gap-2">
                   <input value={locationReady ? location : ''} onChange={(e) => setLocation(e.target.value)} placeholder={locationReady ? '' : 'Obteniendo ubicación...'} className="flex-1 text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-orange-400" style={{ fontSize: '16px' }} />
-                  <button type="button" onClick={getLocation} className="text-xs px-3 py-2 rounded-lg bg-orange-100 text-orange-600">📍</button>
+                  <button type="button" onClick={getLocation} className="text-xs px-3 py-2 rounded-lg bg-orange-100 text-orange-600 flex items-center"><MapPin size={14} /></button>
                 </div>
               </div>
             </div>
@@ -351,7 +352,7 @@ export default function ReportarPage() {
           </>
         ) : (
           <>
-            <button onClick={() => setMode('elegir')} className="text-gray-400 text-sm mb-6 flex items-center gap-1">← Volver</button>
+            <button onClick={() => setMode('elegir')} className="text-gray-400 text-sm mb-6 flex items-center gap-1"><ArrowLeft size={16} /> Volver</button>
 
             {/* Inputs ocultos */}
             <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFirstPhoto} />
@@ -360,7 +361,7 @@ export default function ReportarPage() {
 
             {!hasPhotos ? (
               <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center mb-6">
-                <div className="text-5xl mb-4">📸</div>
+                <div className="flex justify-center mb-4"><Camera size={48} className="text-gray-300" /></div>
                 <p className="text-gray-300 text-xs mb-5">La IA detectará raza, especie y edad</p>
                 <div className="flex gap-3">
                   <button type="button" onClick={() => fileRef.current?.click()} className="flex-1 bg-orange-500 text-white rounded-xl py-3 text-sm font-medium">Sacar foto</button>
@@ -411,8 +412,8 @@ export default function ReportarPage() {
 
             {hasPhotos && !analyzing && (
               <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5 mb-6">
-                <p className="text-xs font-medium text-orange-500 mb-4">
-                  {form.tipo ? '✨ Detectado por IA — edita si es necesario' : '✏️ Completa los datos de la mascota'}
+                <p className="text-xs font-medium text-orange-500 mb-4 flex items-center gap-1">
+                  {form.tipo ? <><Sparkles size={13} /> Detectado por IA — edita si es necesario</> : <><PenLine size={13} /> Completa los datos de la mascota</>}
                 </p>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   {[{ label: 'Tipo de animal', key: 'tipo' }, { label: 'Raza', key: 'raza' }, { label: 'Edad aprox.', key: 'edad' }, { label: 'Color', key: 'color' }].map((f) => (
@@ -427,10 +428,10 @@ export default function ReportarPage() {
                   <input value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-orange-400" style={{ fontSize: '16px' }} />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">📍 Ubicación</label>
+                  <label className="text-xs text-gray-400 block mb-1 flex items-center gap-1"><MapPin size={11} /> Ubicación</label>
                   <div className="flex gap-2">
                     <input value={locationReady ? location : ''} onChange={(e) => setLocation(e.target.value)} placeholder={locationReady ? '' : 'Obteniendo ubicación...'} className="flex-1 text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-orange-400" style={{ fontSize: '16px' }} />
-                    <button type="button" onClick={getLocation} className="text-xs px-3 py-2 rounded-lg bg-orange-100 text-orange-600">📍</button>
+                    <button type="button" onClick={getLocation} className="text-xs px-3 py-2 rounded-lg bg-orange-100 text-orange-600 flex items-center"><MapPin size={14} /></button>
                   </div>
                 </div>
               </div>

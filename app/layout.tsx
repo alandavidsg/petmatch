@@ -1,5 +1,6 @@
   import type { Metadata } from 'next';
   import './globals.css';
+  import { Camera, PawPrint, Map, Search } from 'lucide-react';
 
   export const metadata: Metadata = {
     title: 'PetMatch - Adopta una mascota',
@@ -19,14 +20,15 @@
           </div>
 
           <nav className="bg-[#1a1a2e] px-8 py-4 flex items-center justify-between">
-            <a href="/" className="text-white text-xl font-semibold tracking-tight">
+            <a href="/" className="text-white text-xl font-semibold tracking-tight flex items-center gap-1.5">
+              <PawPrint size={20} className="text-orange-500" />
               Pet<span className="text-orange-500">Match</span>
             </a>
             <div className="flex items-center gap-4">
-              <a href="/catalogo" className="text-white/60 hover:text-white text-sm transition">Catalogo</a>
-              <a href="/mapa" className="text-white/60 hover:text-white text-sm transition">Mapa</a>
-              <a href="/perdidos" className="text-white/60 hover:text-white text-sm transition">Perdidos</a>
-              <a href="/reportar" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Reportar</a>
+              <a href="/catalogo" className="text-white/60 hover:text-white text-sm transition">Catálogo</a>
+              <a href="/mapa" className="text-white/60 hover:text-white text-sm transition flex items-center gap-1"><Map size={14} />Mapa</a>
+              <a href="/perdidos" className="text-white/60 hover:text-white text-sm transition flex items-center gap-1"><Search size={14} />Perdidos</a>
+              <a href="/reportar" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5"><Camera size={15} />Reportar</a>
             </div>
           </nav>
 
