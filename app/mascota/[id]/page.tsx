@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
+import { MapPin, ArrowLeft, AlertTriangle, CheckCircle } from 'lucide-react';
 
 type Pet = {
   id: number;
@@ -15,6 +16,8 @@ type Pet = {
   images: string[];
   description: string;
   urgente: boolean;
+  lat: number | null;
+  lng: number | null;
 };
 
 export default function PetDetail() {
@@ -71,7 +74,7 @@ export default function PetDetail() {
 
   if (loading) return (
     <div className="text-center py-20 text-gray-400">
-      <div className="animate-bounce text-4xl mb-4">🐾</div>
+      <div className="flex justify-center mb-4"><MapPin size={40} className="text-orange-300 animate-bounce" /></div>
       <p>Cargando...</p>
     </div>
   );
@@ -165,7 +168,7 @@ export default function PetDetail() {
             onClick={() => router.back()}
             className="text-white/50 hover:text-white text-sm flex items-center gap-1 transition"
           >
-            ← Volver al catálogo
+            <ArrowLeft size={16} /> Volver al catálogo
           </button>
         </div>
       </div>
@@ -173,7 +176,7 @@ export default function PetDetail() {
       <div className="max-w-5xl mx-auto px-6 py-10">
         {submitted ? (
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">✅</div>
+            <div className="flex justify-center mb-4"><CheckCircle size={64} className="text-green-500" /></div>
             <h2 className="text-2xl font-semibold text-[#1a1a2e] mb-3">¡Solicitud enviada!</h2>
             <p className="text-gray-400 mb-8">Te contactaremos pronto para coordinar la adopción de {pet.name}.</p>
             <button onClick={() => router.push('/')} className="bg-orange-500 text-white px-8 py-3 rounded-xl hover:bg-orange-600 transition">
@@ -222,7 +225,7 @@ export default function PetDetail() {
                 {/* Urgente badge */}
                 {pet.urgente && (
                   <span className="absolute top-4 left-4 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 z-10">
-                    🚨 Adopción urgente
+                    <AlertTriangle size={12} /> Adopción urgente
                   </span>
                 )}
 
@@ -281,7 +284,14 @@ export default function PetDetail() {
 
                 <div className="flex flex-col gap-1 mb-5">
                   <p className="text-gray-400">{pet.breed} · {pet.age}</p>
-                  <p className="text-gray-400 text-sm flex items-center gap-1">📍 {pet.location}</p>
+                  <a
+                    href={pet.lat && pet.lng ? `https://www.google.com/maps?q=${pet.lat},${pet.lng}` : `https://www.google.com/maps/search/${encodeURIComponent(pet.location)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-400 text-sm flex items-center gap-1 hover:text-orange-500 transition w-fit"
+                  >
+                    <MapPin size={14} />{pet.location}
+                  </a>
                 </div>
 
                 <div className="h-px bg-gray-100 mb-5" />
