@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimit } from '../../../lib/rateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -121,6 +122,15 @@ Incluye todas las mascotas.`,
 }
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const { allowed } = rateLimit(ip, 5); // 5 búsquedas por minuto por IP
+  if (!allowed) {
+    return NextResponse.json(
+      { error: 'Demasiadas búsquedas. Espera un momento antes de intentarlo de nuevo.' },
+      { status: 429 }
+    );
+  }
+
   try {
     const { imageBase64 } = await req.json();
     if (!imageBase64) return NextResponse.json({ error: 'No image provided' }, { status: 400 });

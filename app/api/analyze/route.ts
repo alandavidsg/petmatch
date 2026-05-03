@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '../../../lib/rateLimit';
 
 const FALLBACK = {
   tipo: '',
@@ -9,6 +10,15 @@ const FALLBACK = {
 };
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const { allowed } = rateLimit(ip, 10); // 10 análisis por minuto por IP
+  if (!allowed) {
+    return NextResponse.json(
+      { error: 'Demasiadas solicitudes. Espera un momento antes de intentarlo de nuevo.' },
+      { status: 429 }
+    );
+  }
+
   const { imageBase64 } = await req.json();
 
   const apiKey = process.env.GROQ_API_KEY;
