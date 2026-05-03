@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, Newspaper, MailX, Loader2 } from 'lucide-react';
 
 type Article = {
   title: string;
@@ -34,7 +35,7 @@ export default function NoticiasPage() {
     <main className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-2xl mx-auto px-6 py-10">
         <button onClick={() => router.back()} className="text-gray-400 text-sm mb-6 flex items-center gap-1">
-          ← Volver
+          <ArrowLeft size={16} /> Volver
         </button>
 
         <h1 className="text-2xl font-semibold text-[#1a1a2e] mb-2">Noticias</h1>
@@ -42,12 +43,12 @@ export default function NoticiasPage() {
 
         {loading ? (
           <div className="text-center py-16 text-gray-400">
-            <div className="animate-bounce text-4xl mb-4">📰</div>
+            <div className="flex justify-center mb-4"><Loader2 size={40} className="text-orange-300 animate-spin" /></div>
             <p>Cargando noticias...</p>
           </div>
         ) : articles.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
-            <div className="text-4xl mb-4">📭</div>
+            <div className="flex justify-center mb-4"><MailX size={40} className="text-gray-300" /></div>
             <p>No hay noticias disponibles por ahora</p>
           </div>
         ) : (
