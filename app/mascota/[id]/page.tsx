@@ -18,6 +18,7 @@ type Pet = {
   urgente: boolean;
   lat: number | null;
   lng: number | null;
+  refugio_id: string | null;
 };
 
 export default function PetDetail() {
@@ -61,11 +62,11 @@ export default function PetDetail() {
 
     const { error } = await supabase.from('solicitudes').insert({
       mascota_id: pet?.id,
-      nombre: form.nombre,
-      email: form.email,
-      telefono: form.telefono,
-      vivienda: form.vivienda,
-      motivo: form.motivo,
+      refugio_id: pet?.refugio_id ?? null,
+      nombre_adoptante: form.nombre,
+      email_adoptante: form.email,
+      telefono_adoptante: form.telefono,
+      mensaje: `Vivienda: ${form.vivienda}. ${form.motivo}`,
     });
 
     if (!error) setSubmitted(true);
