@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePanelContext } from './layout';
-import { PawPrint, Heart, MessageSquare, Plus, TrendingUp } from 'lucide-react';
+import { PawPrint, Heart, MessageSquare, Plus, TrendingUp, Sparkles } from 'lucide-react';
 
 type Stats = {
   total: number;
@@ -52,8 +52,8 @@ export default function PanelDashboard() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#1a1a2e]">
-          Hola, {refugio?.nombre} 👋
+        <h1 className="text-2xl font-bold text-[#1a1a2e] flex items-center gap-2">
+          Hola, {refugio?.nombre} <Sparkles size={22} className="text-orange-400" />
         </h1>
         <p className="text-gray-400 text-sm mt-1">
           {refugio?.region ? `${refugio.region} · ` : ''}Resumen de tu refugio
