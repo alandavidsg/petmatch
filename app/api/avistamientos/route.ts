@@ -8,7 +8,7 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { mascota_id, lat, lng, location, imagen } = await req.json();
+    const { mascota_id, lat, lng, location, imagen, inicial } = await req.json();
 
     if (!mascota_id) {
       return NextResponse.json({ error: 'mascota_id requerido' }, { status: 400 });
@@ -25,7 +25,12 @@ export async function POST(req: NextRequest) {
 
     if (avError) return NextResponse.json({ error: avError.message }, { status: 500 });
 
-    // 2. Incrementar contador + actualizar ubicación
+    // 2. Si es el avistamiento inicial (publicación), no incrementar contador
+    if (inicial) {
+      return NextResponse.json({ ok: true, count: 1 });
+    }
+
+    // 3. Incrementar contador + actualizar última ubicación conocida
     const { data: current } = await supabase
       .from('mascotas')
       .select('avistamientos_count')

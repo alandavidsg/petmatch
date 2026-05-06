@@ -229,6 +229,31 @@ export default function ReportarPage() {
     });
 
     if (insertError) { alert('Error guardando mascota. Intenta de nuevo.'); setSubmitting(false); return; }
+
+    // Registrar avistamiento inicial con la ubicación de publicación
+    const { data: nueva } = await supabase
+      .from('mascotas')
+      .select('id')
+      .eq('image', imageUrls[0])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (nueva?.id) {
+      await fetch('/api/avistamientos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mascota_id: nueva.id,
+          lat: coords?.lat ?? null,
+          lng: coords?.lng ?? null,
+          location: location || null,
+          imagen: imageUrls[0],
+          inicial: true,
+        }),
+      });
+    }
+
     setShowDupModal(false);
     setSubmitted(true);
     setTimeout(() => router.push('/'), 2500);

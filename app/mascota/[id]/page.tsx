@@ -322,7 +322,7 @@ export default function PetDetail() {
                   <div className="flex items-center gap-2 mb-4">
                     <Eye size={16} className="text-orange-500" />
                     <h3 className="font-semibold text-[#1a1a2e] text-sm">
-                      Historial de avistamientos · {(pet.avistamientos_count ?? 1)} vez{(pet.avistamientos_count ?? 1) !== 1 ? 'es' : ''} visto
+                      Historial de avistamientos · {(pet.avistamientos_count ?? 1)} {(pet.avistamientos_count ?? 1) === 1 ? 'vez visto' : 'veces visto'}
                     </h3>
                   </div>
                   <div className="flex flex-col gap-3">
