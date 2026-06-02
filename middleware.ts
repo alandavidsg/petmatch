@@ -3,13 +3,23 @@ import { NextRequest, NextResponse } from 'next/server';
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Permitir acceso libre a login, assets y panel de refugios (tiene su propio auth)
+  // Permitir acceso libre a páginas públicas, assets y panel de refugios
   if (
+    pathname === '/' ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/api/login') ||
-    pathname.startsWith('/donar/gracias') ||
+    pathname.startsWith('/mascota') ||
+    pathname.startsWith('/catalogo') ||
+    pathname.startsWith('/mapa') ||
+    pathname.startsWith('/perdidos') ||
+    pathname.startsWith('/reportar') ||
+    pathname.startsWith('/quienes-somos') ||
+    pathname.startsWith('/faq') ||
+    pathname.startsWith('/contacto') ||
+    pathname.startsWith('/donar') ||
+    pathname.startsWith('/noticias') ||
+    pathname.startsWith('/api/') ||
     pathname.startsWith('/refugios') ||
-    pathname.startsWith('/api/refugios') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon')
   ) {
