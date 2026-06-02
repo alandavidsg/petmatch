@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import PetDetailClient from './PetDetailClient';
 
+export const dynamic = 'force-dynamic';
+
 const SITE_URL = 'https://petmatch-gamma.vercel.app';
 
 type Props = {
