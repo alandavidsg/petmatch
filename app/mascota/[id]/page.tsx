@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import PetDetailClient from './PetDetailClient';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const SITE_URL = 'https://petmatch-gamma.vercel.app';
 
@@ -79,6 +81,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PetPage({ params }: Props) {
+  // Opt into dynamic rendering — prevents Vercel from pre-rendering this page
+  headers();
   const { id } = await params;
   return <PetDetailClient id={id} />;
 }
