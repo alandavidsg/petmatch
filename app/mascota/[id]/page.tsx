@@ -54,11 +54,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const desc = `${breed}${pet.age ? `, ${pet.age}` : ''} · ${pet.location}. ${pet.description ? pet.description.slice(0, 100) : 'Ayúdame a encontrar un hogar lleno de amor.'}`;
     const url = `${SITE_URL}/mascota/${id}`;
 
-    // Usar transformación de imagen de Supabase para reducir a 1200x630 (< 600KB para WhatsApp/X)
+    // Usar Next.js image optimizer para reducir la imagen a ~80KB (WhatsApp requiere < 600KB)
     const rawImage = pet.image || '';
-    const image = rawImage.includes('/storage/v1/object/public/')
-      ? rawImage.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + '?width=1200&height=630&resize=cover&quality=80'
-      : rawImage || `${SITE_URL}/og-default.png`;
+    const image = rawImage
+      ? `${SITE_URL}/_next/image?url=${encodeURIComponent(rawImage)}&w=1200&q=80`
+      : `${SITE_URL}/og-default.png`;
 
     return {
       title,
