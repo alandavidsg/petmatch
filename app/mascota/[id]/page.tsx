@@ -53,7 +53,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const breed = pet.breed ? `${pet.type} ${pet.breed}` : pet.type;
     const desc = `${breed}${pet.age ? `, ${pet.age}` : ''} · ${pet.location}. ${pet.description ? pet.description.slice(0, 100) : 'Ayúdame a encontrar un hogar lleno de amor.'}`;
     const url = `${SITE_URL}/mascota/${id}`;
-    const image = pet.image || `${SITE_URL}/og-default.png`;
+
+    // Usar transformación de imagen de Supabase para reducir a 1200x630 (< 600KB para WhatsApp/X)
+    const rawImage = pet.image || '';
+    const image = rawImage.includes('/storage/v1/object/public/')
+      ? rawImage.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + '?width=1200&height=630&resize=cover&quality=80'
+      : rawImage || `${SITE_URL}/og-default.png`;
 
     return {
       title,
