@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Mascota no encontrada' }, { status: 404 });
     }
 
-    // Si ya tiene refugio (la publicó un refugio), no reasignar
+    // Si la publicó un refugio, ese refugio ya es el dueño: no hay nada que asignar
     if (mascota.refugio_id) {
-      return NextResponse.json({ skipped: 'ya tiene refugio' });
+      return NextResponse.json({ skipped: 'publicada por un refugio' });
     }
 
     // Sin coordenadas no se puede calcular cercanía
@@ -68,8 +68,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Asignar la mascota al refugio
-    await supabaseAdmin.from('mascotas').update({ refugio_id: nearest.id }).eq('id', mascota.id);
+    // 4. Registrar el refugio cercano. Es informativo: no le da la propiedad de
+    //    la mascota ni redirige las solicitudes de adopción (esas van a quien publicó).
+    await supabaseAdmin.from('mascotas').update({ refugio_cercano_id: nearest.id }).eq('id', mascota.id);
 
     // 5. Notificar por email (no bloquea la asignación)
     if (nearest.email && process.env.RESEND_API_KEY) {
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
         <tr>
           <td style="background:#f9f9f9;padding:16px 32px;text-align:center;border-top:1px solid #eeeeee;">
             <p style="margin:0;font-size:12px;color:#aaaaaa;">
-              Esta mascota fue asignada a tu refugio por cercanía.<br>
+              Te avisamos porque tu refugio es el más cercano al lugar del reporte.<br>
               <a href="${SITE_URL}/refugios/panel" style="color:#e86c00;text-decoration:none;">Ir al panel</a>
             </p>
           </td>
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, refugio_id: nearest.id, distancia_km: minDist });
+    return NextResponse.json({ ok: true, refugio_cercano_id: nearest.id, distancia_km: minDist });
   } catch (err) {
     console.error('asignar refugio error:', err);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });

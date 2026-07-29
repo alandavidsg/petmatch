@@ -12,7 +12,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { mascota_id, refugio_id, nombre_adoptante, email_adoptante, telefono_adoptante, mensaje, tipo } = body;
+    const { mascota_id, nombre_adoptante, email_adoptante, telefono_adoptante, mensaje, tipo } = body;
 
     if (!mascota_id || !nombre_adoptante || !email_adoptante) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
@@ -20,10 +20,35 @@ export async function POST(req: NextRequest) {
 
     const tipoSolicitud = tipo === 'hogar_temporal' ? 'hogar_temporal' : 'adopcion';
 
-    // 1. Insertar solicitud
+    // 1. Obtener la mascota. El destinatario se resuelve acá y no desde el body:
+    //    solo el refugio que PUBLICÓ la mascota recibe sus solicitudes; el refugio
+    //    cercano asignado por geolocalización es informativo y no interviene.
+    const { data: mascota } = await supabase
+      .from('mascotas')
+      .select('name, type, breed, image, location, contact_email, refugio_id')
+      .eq('id', mascota_id)
+      .single();
+
+    if (!mascota) {
+      return NextResponse.json({ error: 'Mascota no encontrada' }, { status: 404 });
+    }
+
+    let destinatario: string | null = null;
+    if (mascota.refugio_id) {
+      const { data: refugio } = await supabase
+        .from('refugios')
+        .select('email')
+        .eq('id', mascota.refugio_id)
+        .single();
+      destinatario = refugio?.email ?? null;
+    } else {
+      destinatario = mascota.contact_email ?? null;
+    }
+
+    // 2. Insertar solicitud
     const { data: solicitud, error: insertError } = await supabase
       .from('solicitudes')
-      .insert({ mascota_id, refugio_id: refugio_id ?? null, nombre_adoptante, email_adoptante, telefono_adoptante, mensaje, tipo: tipoSolicitud })
+      .insert({ mascota_id, refugio_id: mascota.refugio_id ?? null, nombre_adoptante, email_adoptante, telefono_adoptante, mensaje, tipo: tipoSolicitud })
       .select('id')
       .single();
 
@@ -32,28 +57,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: insertError.message, details: insertError }, { status: 500 });
     }
 
-    // 2. Obtener datos de la mascota
-    const { data: mascota } = await supabase
-      .from('mascotas')
-      .select('name, type, breed, image, location, contact_email, refugio_id')
-      .eq('id', mascota_id)
-      .single();
-
-    // 3. Determinar email del destinatario
-    let destinatario: string | null = null;
-
-    if (refugio_id) {
-      const { data: refugio } = await supabase
-        .from('refugios')
-        .select('email, nombre')
-        .eq('id', refugio_id)
-        .single();
-      destinatario = refugio?.email ?? null;
-    } else {
-      destinatario = mascota?.contact_email ?? null;
+    // 3. Enviar email si hay destinatario (error no bloquea la solicitud)
+    if (!destinatario) {
+      console.warn(`solicitud ${solicitud?.id} sin destinatario: mascota ${mascota_id} no tiene refugio ni contact_email`);
     }
-
-    // 4. Enviar email si hay destinatario (error no bloquea la solicitud)
     if (destinatario && process.env.RESEND_API_KEY) { try {
       const esHogarTemporal = tipoSolicitud === 'hogar_temporal';
       const petName = mascota?.name ?? 'Mascota';

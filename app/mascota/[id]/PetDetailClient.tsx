@@ -33,7 +33,6 @@ type Pet = {
   necesita_operacion: boolean;
   lat: number | null;
   lng: number | null;
-  refugio_id: string | null;
   avistamientos_count: number | null;
 };
 
@@ -118,7 +117,6 @@ export default function PetDetailClient({ id }: { id: string }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         mascota_id: pet?.id,
-        refugio_id: pet?.refugio_id ?? null,
         nombre_adoptante: form.nombre,
         email_adoptante: form.email,
         telefono_adoptante: form.telefono ? `+56 ${form.telefono}` : '',
