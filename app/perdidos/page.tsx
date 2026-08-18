@@ -41,6 +41,11 @@ export default function PerdidosPage() {
   const [matches, setMatches] = useState<Match[] | null>(null);
   const [analysis, setAnalysis] = useState<{ tipo: string; raza: string; color: string; descripcion: string } | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  // Publicaciones nuevas que el buscador aún no alcanzó a analizar, y si el
+  // resultado salió de ampliar la búsqueda al mismo tipo por falta de datos de
+  // esa raza. Sin esto, ambos casos se veían como un "Sin coincidencias" seco.
+  const [calentando, setCalentando] = useState<number>(0);
+  const [aproximado, setAproximado] = useState(false);
 
   // ── REPORTAR ──
   const fileReportCameraRef = useRef<HTMLInputElement>(null);
@@ -156,6 +161,8 @@ export default function PerdidosPage() {
     setSearching(true);
     setSearchError(null);
     setMatches(null);
+    setCalentando(0);
+    setAproximado(false);
     try {
       const res = await fetch('/api/buscar-mascota', {
         method: 'POST',
@@ -166,6 +173,8 @@ export default function PerdidosPage() {
       if (data.error) throw new Error(data.error);
       setMatches(data.matches);
       setAnalysis(data.analysis ?? null);
+      setCalentando(data.calentando ?? 0);
+      setAproximado(!!data.aproximado);
     } catch {
       setSearchError('Error al buscar. Intenta de nuevo.');
     }
@@ -325,10 +334,18 @@ export default function PerdidosPage() {
             {matches !== null && (
               <div className="mt-8">
                 <h2 className="text-xl font-bold text-[#1a1a2e] mb-1">
-                  {matches.length > 0 ? 'Posibles coincidencias' : 'Sin coincidencias'}
+                  {matches.length === 0
+                    ? (calentando > 0 ? 'Todavía estamos analizando' : 'Sin coincidencias')
+                    : (aproximado ? 'Coincidencias aproximadas' : 'Posibles coincidencias')}
                 </h2>
                 <p className="text-sm text-gray-400 mb-5">
-                  {matches.length > 0 ? 'Haz clic en cada mascota para ver más detalles.' : 'No encontramos coincidencias. ¿La reportamos como perdida?'}
+                  {matches.length === 0
+                    ? (calentando > 0
+                        ? `Hay ${calentando} publicación${calentando === 1 ? '' : 'es'} reciente${calentando === 1 ? '' : 's'} que aún no alcanzamos a analizar. Vuelve a buscar en un momento, o repórtala como perdida.`
+                        : 'No encontramos coincidencias. ¿La reportamos como perdida?')
+                    : (aproximado
+                        ? 'No encontramos publicaciones de esa raza, así que te mostramos otras del mismo tipo. Haz clic en cada una para ver más detalles.'
+                        : 'Haz clic en cada mascota para ver más detalles.')}
                 </p>
                 <div className="grid grid-cols-2 gap-4">
                   {matches.map((m) => (

@@ -52,6 +52,9 @@ export default function ReportarPage() {
   const [loadingCercanos, setLoadingCercanos] = useState(false);
   const [form, setForm] = useState({ tipo: '', raza: '', edad: '', color: '', descripcion: '' });
   const [adoptForm, setAdoptForm] = useState({ nombre: '', tipo: '', raza: '', sexo: '', edad: '', color: '', descripcion: '', contactoNombre: '', telefono: '', email: '' });
+  // Descripción visual generada por la IA al analizar la foto. No se muestra ni se
+  // edita: alimenta el caché que usa la búsqueda de mascotas perdidas.
+  const [visualDescription, setVisualDescription] = useState('');
 
   const getLocationFromIP = async () => {
     try {
@@ -273,9 +276,14 @@ export default function ReportarPage() {
           return;
         }
         setForm({ tipo: result.tipo || '', raza: result.raza || '', edad: result.edad || '', color: result.color || '', descripcion: result.descripcion || '' });
+        // Se guarda tal cual viene de la IA (el usuario no la edita): es la que
+        // usa la búsqueda de mascotas perdidas para comparar por texto. Guardarla
+        // acá evita que el catálogo quede sin describir esperando a que alguien
+        // busque justo esa raza.
+        setVisualDescription(result.descripcion_visual || '');
         setAnalyzing(false);
       })
-      .catch(() => { setForm({ tipo: '', raza: '', edad: '', color: '', descripcion: '' }); setAnalyzing(false); });
+      .catch(() => { setForm({ tipo: '', raza: '', edad: '', color: '', descripcion: '' }); setVisualDescription(''); setAnalyzing(false); });
   };
 
   // Asigna la mascota recién publicada al refugio más cercano y lo notifica (no bloquea)
@@ -315,6 +323,7 @@ export default function ReportarPage() {
       contact_nombre: adoptForm.contactoNombre || null,
       contact_telefono: adoptForm.telefono || null,
       contact_email: adoptForm.email || null,
+      visual_description: visualDescription || null,
       available: true,
       urgente: esUrgenteElegible(adoptForm.edad) && urgente,
       hogar_temporal: hogarTemporal,
@@ -355,6 +364,7 @@ export default function ReportarPage() {
       lat: coords?.lat ?? null,
       lng: coords?.lng ?? null,
       description: `${form.descripcion}. Color: ${form.color}`,
+      visual_description: visualDescription || null,
       available: true,
       urgente: esUrgenteElegible(form.edad) && urgente,
       hogar_temporal: hogarTemporal,

@@ -2,15 +2,17 @@ import { NextRequest, NextResponse, after } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { rateLimit } from '../../../lib/rateLimit';
 import { trackAiUsage } from '../../../lib/aiUsage';
-import { supabaseAdmin } from '../../../lib/supabase-admin';
+import {
+  GROQ_MODEL,
+  groqChatCompletion,
+  analyzePetImage,
+  getOrCreateVisualDescription,
+} from '../../../lib/petVision';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-
-const GROQ_API_KEY = process.env.GROQ_API_KEY!;
-const GROQ_MODEL = 'qwen/qwen3.6-27b';
 
 type Pet = {
   id: number;
@@ -46,93 +48,6 @@ function expandirSinonimos(keywords: string[]): string[] {
     (RAZA_SINONIMOS[kw] ?? []).forEach((s) => expandido.add(s));
   }
   return [...expandido];
-}
-
-type Analysis = {
-  tipo: string;
-  raza: string;
-  color: string;
-  descripcion: string;
-};
-
-// Llama a Groq y, si choca con el rate limit (429), espera lo que Groq pide
-// ("Please retry in X.Ys") y reintenta UNA vez. Cachear el catálogo de a poco
-// (Promise.all en paralelo) puede disparar varias llamadas seguidas que, sumadas,
-// superen las 8.000 tokens/minuto aunque cada una sea liviana; el retry evita que
-// esa mascota se quede afuera del resultado solo por mala suerte de timing.
-async function groqChatCompletion(body: object): Promise<Response> {
-  const call = () =>
-    fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-  const first = await call();
-  if (first.status !== 429) return first;
-
-  const errText = await first.text();
-  const waitMatch = errText.match(/retry in ([\d.]+)s/i);
-  const waitMs = Math.min(waitMatch ? Math.ceil(parseFloat(waitMatch[1]) * 1000) : 10_000, 25_000);
-  await new Promise((resolve) => setTimeout(resolve, waitMs));
-  return call();
-}
-
-// Analiza una foto (URL remota o data URI, Groq acepta ambas) y extrae tipo, raza,
-// color y descripción. Se usa tanto para la foto de la mascota perdida como (una
-// sola vez por mascota, con caché en `visual_description`) para el catálogo.
-async function analyzePetImage(imageUrl: string): Promise<Analysis> {
-  const response = await groqChatCompletion({
-    model: GROQ_MODEL,
-    reasoning_effort: 'none',
-    messages: [{
-      role: 'user',
-      content: [
-        { type: 'image_url', image_url: { url: imageUrl } },
-        {
-          type: 'text',
-          text: `Analiza esta mascota y responde ÚNICAMENTE con JSON válido sin texto adicional:
-{
-  "tipo": "Perro" o "Gato" u otro tipo,
-  "raza": "nombre exacto de la raza en español, ej: Husky Siberiano, Golden Retriever, Mestizo",
-  "color": "colores principales del pelaje",
-  "descripcion": "descripción visual detallada en 2-3 oraciones: raza, color, marcas distintivas, tamaño, características únicas"
-}`,
-        },
-      ],
-    }],
-    max_tokens: 400,
-    temperature: 0.1,
-  });
-
-  if (!response.ok) {
-    console.error('Groq analyzePetImage error:', response.status, await response.text());
-    return { tipo: '', raza: '', color: '', descripcion: '' };
-  }
-
-  const result = await response.json();
-  const text: string = result.choices?.[0]?.message?.content ?? '';
-  try {
-    const clean = text.replace(/```json\n?|\n?```/g, '').trim();
-    const jsonMatch = clean.match(/\{[\s\S]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
-  } catch { /* empty */ }
-  console.error('Groq analyzePetImage: no se pudo parsear JSON. Texto crudo:', text);
-  return { tipo: '', raza: '', color: '', descripcion: '' };
-}
-
-// Genera y cachea la descripción visual de una mascota del catálogo (solo la primera
-// vez que aparece en una búsqueda; de ahí en adelante se reusa desde la BD, sin
-// volver a llamar a la IA por ella). Groq acepta la URL pública de Supabase Storage
-// directo, no hace falta descargar los bytes como con Gemini.
-async function getOrCreateVisualDescription(pet: Pet): Promise<string | null> {
-  if (pet.visual_description) return pet.visual_description;
-
-  const analysis = await analyzePetImage(pet.image);
-  if (!analysis.descripcion) return null;
-
-  await supabaseAdmin.from('mascotas').update({ visual_description: analysis.descripcion }).eq('id', pet.id);
-  return analysis.descripcion;
 }
 
 // Ranking visual por texto: compara la descripción de la mascota buscada contra las
@@ -249,7 +164,7 @@ export async function POST(req: NextRequest) {
     //    usuario se quedaba viendo "Buscando..." indefinidamente. Ahora solo se
     //    usa lo que ya está cacheado para responder, y lo faltante se genera
     //    en segundo plano con after() para que la próxima búsqueda ya lo tenga.
-    const yaDescriptas = petsToCompare.filter(
+    let yaDescriptas = petsToCompare.filter(
       (p): p is Pet & { visual_description: string } => !!p.visual_description
     );
     const porDescribir = petsToCompare.filter((p) => !p.visual_description);
@@ -262,6 +177,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Red de seguridad: el filtro por raza deja grupos muy chicos (ej. 3 Golden
+    // Retriever) y si NINGUNO está descrito todavía no queda nada que rankear,
+    // así que la búsqueda respondía "sin coincidencias" aunque el catálogo sí
+    // tuviera candidatas. En ese caso se amplía a las del mismo tipo que sí
+    // tengan descripción: una coincidencia aproximada es mejor que ninguna.
+    const aproximado = yaDescriptas.length === 0;
+    if (aproximado) {
+      yaDescriptas = allPets
+        .filter((p): p is Pet & { visual_description: string } => !!p.visual_description)
+        .slice(0, MAX_COMPARE);
+    }
+
     // 5. Ranking visual por texto (1 sola llamada, sin imágenes de catálogo)
     const sorted = (await rankByDescription(analysis.descripcion, yaDescriptas))
       .sort((a, b) => b.similitud - a.similitud)
@@ -271,6 +198,10 @@ export async function POST(req: NextRequest) {
       matches: sorted,
       analysis,
       calentando: porDescribir.length > 0 ? porDescribir.length : undefined,
+      // El ranking no encontró nada descrito de esa raza y comparó contra el
+      // resto del mismo tipo — la interfaz lo aclara para no dar a entender
+      // que son coincidencias de raza.
+      aproximado: aproximado && sorted.length > 0 ? true : undefined,
     });
   } catch (err) {
     console.error('buscar-mascota error:', err);

@@ -8,6 +8,7 @@ const FALLBACK = {
   edad: '',
   color: '',
   descripcion: '',
+  descripcion_visual: '',
   es_animal: false,
 };
 
@@ -55,13 +56,17 @@ export async function POST(req: NextRequest) {
   "raza": "raza aproximada o Mestizo si no se puede determinar (vacío si no es animal)",
   "edad": "Cachorro, Joven, Adulto o Senior (vacío si no es animal)",
   "color": "colores del pelaje (vacío si no es animal)",
-  "descripcion": "descripción breve en 1 oración en español (vacío si no es animal)"
+  "descripcion": "descripción breve en 1 oración en español (vacío si no es animal)",
+  "descripcion_visual": "descripción visual detallada en 2-3 oraciones: raza, color, marcas distintivas, tamaño y características únicas (vacío si no es animal)"
 }`,
               },
             ],
           },
         ],
-        max_tokens: 400,
+        // 500 y no 400: además de los campos del formulario ahora se pide
+        // `descripcion_visual` (2-3 oraciones), que es lo que la búsqueda de
+        // mascotas perdidas usa como caché para rankear sin re-mirar la foto.
+        max_tokens: 500,
         temperature: 0.1,
       }),
     });
