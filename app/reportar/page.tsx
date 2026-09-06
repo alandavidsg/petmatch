@@ -3,10 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
-import { ArrowLeft, Camera, Home, MapPin, Phone, CheckCircle, Sparkles, PenLine, AlertTriangle, Eye, Crop as CropIcon, Zap, HeartPulse } from 'lucide-react';
+import { ArrowLeft, Camera, Home, MapPin, Phone, CheckCircle, Sparkles, PenLine, AlertTriangle, Eye, Zap, HeartPulse } from 'lucide-react';
 import exifr from 'exifr';
-import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
+import PhotoCropModal from '../components/PhotoCropModal';
 
 export default function ReportarPage() {
   const router = useRouter();
@@ -19,11 +18,8 @@ export default function ReportarPage() {
   const [previews, setPreviews] = useState<string[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
 
-  // Recorte de la foto principal
-  const cropImgRef = useRef<HTMLImageElement>(null);
+  // Recorte de la foto principal (el editor vive en PhotoCropModal)
   const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const [crop, setCrop] = useState<Crop>();
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -174,26 +170,8 @@ export default function ReportarPage() {
     extractGpsFromFile(f);
     const base64 = await readFile(f);
     // Abrir el editor de recorte antes de procesar
-    setCrop(undefined);
-    setCompletedCrop(undefined);
     setCropSrc(base64);
     e.target.value = '';
-  };
-
-  // Genera el recorte como JPEG a partir de la selección sobre la imagen mostrada
-  const getCroppedBase64 = (image: HTMLImageElement, c: PixelCrop): string => {
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(c.width * scaleX);
-    canvas.height = Math.round(c.height * scaleY);
-    const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(
-      image,
-      c.x * scaleX, c.y * scaleY, c.width * scaleX, c.height * scaleY,
-      0, 0, canvas.width, canvas.height
-    );
-    return canvas.toDataURL('image/jpeg', 0.85);
   };
 
   // Procesa una foto principal (recortada o no) e inicia el análisis
@@ -206,29 +184,9 @@ export default function ReportarPage() {
     analyzePhoto(resized);
   };
 
-  const confirmCrop = async () => {
-    if (!cropSrc) return;
-    const img = cropImgRef.current;
-    const useCrop = img && completedCrop && completedCrop.width > 8 && completedCrop.height > 8;
-    const base64 = useCrop ? getCroppedBase64(img, completedCrop) : cropSrc;
+  const confirmCrop = async (base64: string) => {
     setCropSrc(null);
     await processMainPhoto(base64);
-  };
-
-  // Al cargar la imagen en el editor, preselecciona un recuadro centrado al 90%
-  const onCropImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { width, height } = e.currentTarget;
-    const w = width * 0.9;
-    const h = height * 0.9;
-    const px: PixelCrop = { unit: 'px', x: (width - w) / 2, y: (height - h) / 2, width: w, height: h };
-    setCrop(px);
-    setCompletedCrop(px);
-  };
-
-  const cancelCrop = () => {
-    setCropSrc(null);
-    setCrop(undefined);
-    setCompletedCrop(undefined);
   };
 
   const handleExtraPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -449,41 +407,7 @@ export default function ReportarPage() {
     <main suppressHydrationWarning>
       {/* Modal de recorte de la foto principal */}
       {cropSrc && (
-        <div className="fixed inset-0 z-[60] bg-black/90 flex flex-col items-center justify-center p-4">
-          <div className="flex items-center gap-2 text-white mb-4 text-sm font-medium">
-            <CropIcon size={16} /> Recorta la foto (arrastra para ajustar)
-          </div>
-          <div className="max-w-full max-h-[65vh] overflow-hidden flex items-center justify-center">
-            <ReactCrop
-              crop={crop}
-              onChange={(c) => setCrop(c)}
-              onComplete={(c) => setCompletedCrop(c)}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                ref={cropImgRef}
-                src={cropSrc}
-                alt="Recortar foto"
-                onLoad={onCropImageLoad}
-                style={{ maxHeight: '65vh', maxWidth: '100%', objectFit: 'contain' }}
-              />
-            </ReactCrop>
-          </div>
-          <div className="flex gap-3 mt-5 w-full max-w-md">
-            <button
-              onClick={cancelCrop}
-              className="flex-1 py-3 rounded-xl bg-white/10 text-white font-medium text-sm hover:bg-white/20 transition"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={confirmCrop}
-              className="flex-1 py-3 rounded-xl bg-orange-500 text-white font-medium text-sm hover:bg-orange-600 transition"
-            >
-              Usar foto
-            </button>
-          </div>
-        </div>
+        <PhotoCropModal src={cropSrc} onCancel={() => setCropSrc(null)} onConfirm={confirmCrop} />
       )}
 
       {/* Modal de duplicados */}
