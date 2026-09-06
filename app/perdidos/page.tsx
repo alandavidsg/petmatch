@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { PawPrint, Search, Megaphone, Camera, MapPin, Loader2, Lightbulb, Coins } from 'lucide-react';
 import exifr from 'exifr';
+import PhotoCropModal from '../components/PhotoCropModal';
 
 type Match = {
   id: number;
@@ -46,6 +47,10 @@ export default function PerdidosPage() {
   // esa raza. Sin esto, ambos casos se veían como un "Sin coincidencias" seco.
   const [calentando, setCalentando] = useState<number>(0);
   const [aproximado, setAproximado] = useState(false);
+
+  // ── Recorte de foto (compartido entre buscar y reportar) ──
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<'buscar' | 'reportar' | null>(null);
 
   // ── REPORTAR ──
   const fileReportCameraRef = useRef<HTMLInputElement>(null);
@@ -138,22 +143,44 @@ export default function PerdidosPage() {
       img.src = base64;
     });
 
-  // ── Handlers buscar ──
-  const handleSearchFile = async (file: File) => {
-    // Intentar leer GPS del EXIF (fotos de galería)
-    extractGpsFromFile(file);
+  // Lee un archivo como data URI
+  const readFile = (f: File): Promise<string> =>
+    new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.readAsDataURL(f);
+    });
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const original = e.target?.result as string;
-      setPreview(original);
-      const resized = await resizeImage(original);
-      setImageBase64(resized);
-      setMatches(null);
-      setSearchError(null);
-      setAnalysis(null);
-    };
-    reader.readAsDataURL(file);
+  // ── Recorte (compartido por los dos flujos) ──
+  // Ambos abren el mismo editor; `cropTarget` recuerda a cuál devolverle la foto.
+  const abrirRecorte = async (file: File, target: 'buscar' | 'reportar') => {
+    // El GPS se lee del archivo ORIGINAL: al recortar se pierde el EXIF.
+    extractGpsFromFile(file);
+    setCropTarget(target);
+    setCropSrc(await readFile(file));
+  };
+
+  const cancelarRecorte = () => {
+    setCropSrc(null);
+    setCropTarget(null);
+  };
+
+  const confirmarRecorte = async (base64: string) => {
+    const target = cropTarget;
+    setCropSrc(null);
+    setCropTarget(null);
+    if (target === 'buscar') await aplicarFotoBusqueda(base64);
+    else if (target === 'reportar') await aplicarFotoReporte(base64);
+  };
+
+  // ── Handlers buscar ──
+  const aplicarFotoBusqueda = async (base64: string) => {
+    setPreview(base64);
+    const resized = await resizeImage(base64);
+    setImageBase64(resized);
+    setMatches(null);
+    setSearchError(null);
+    setAnalysis(null);
   };
 
   const handleSearch = async () => {
@@ -182,31 +209,26 @@ export default function PerdidosPage() {
   };
 
   // ── Handlers reportar ──
-  const handleReportFile = async (f: File) => {
-    // Intentar leer GPS del EXIF (fotos de galería)
-    extractGpsFromFile(f);
-
-    setReportFile(f);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target?.result as string;
-      setReportPreview(base64);
-      setAnalyzing(true);
-      try {
-        const resized = await resizeImage(base64, 512);
-        const res = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: resized }),
-        });
-        const data = await res.json();
-        if (data.tipo || data.raza) {
-          setForm((prev) => ({ ...prev, tipo: data.tipo || prev.tipo, raza: data.raza || prev.raza, color: data.color || prev.color, descripcion: data.descripcion || prev.descripcion }));
-        }
-      } catch { /* silent */ }
-      setAnalyzing(false);
-    };
-    reader.readAsDataURL(f);
+  const aplicarFotoReporte = async (base64: string) => {
+    // El insert sube el File a Storage, así que hay que reconstruirlo desde el
+    // recorte; si se subiera el archivo original se publicaría la foto sin recortar.
+    const blob = await (await fetch(base64)).blob();
+    setReportFile(new File([blob], `perdida-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+    setReportPreview(base64);
+    setAnalyzing(true);
+    try {
+      const resized = await resizeImage(base64, 512);
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: resized }),
+      });
+      const data = await res.json();
+      if (data.tipo || data.raza) {
+        setForm((prev) => ({ ...prev, tipo: data.tipo || prev.tipo, raza: data.raza || prev.raza, color: data.color || prev.color, descripcion: data.descripcion || prev.descripcion }));
+      }
+    } catch { /* silent */ }
+    setAnalyzing(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -243,6 +265,11 @@ export default function PerdidosPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      {/* Editor de recorte: lo comparten la búsqueda y el reporte de pérdida */}
+      {cropSrc && (
+        <PhotoCropModal src={cropSrc} onCancel={cancelarRecorte} onConfirm={confirmarRecorte} />
+      )}
+
       {/* Hero */}
       <section className="bg-[#1a1a2e] px-8 py-14 text-center">
         <div className="flex justify-center mb-3"><PawPrint size={48} className="text-orange-400" /></div>
@@ -270,12 +297,12 @@ export default function PerdidosPage() {
           <div>
             {/* Inputs ocultos: cámara y galería separados */}
             <input ref={fileSearchCameraRef} type="file" accept="image/*" capture="environment" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSearchFile(f); }} />
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) abrirRecorte(f, 'buscar'); e.target.value = ''; }} />
             <input ref={fileSearchGalleryRef} type="file" accept="image/*" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSearchFile(f); }} />
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) abrirRecorte(f, 'buscar'); e.target.value = ''; }} />
 
             <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center bg-white"
-              onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.type.startsWith('image/')) handleSearchFile(f); }}
+              onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.type.startsWith('image/')) abrirRecorte(f, 'buscar'); }}
               onDragOver={(e) => e.preventDefault()}>
               {preview ? (
                 <div className="flex flex-col items-center gap-3">
@@ -382,9 +409,9 @@ export default function PerdidosPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-5 pb-10">
             {/* Inputs ocultos: cámara y galería separados */}
             <input ref={fileReportCameraRef} type="file" accept="image/*" capture="environment" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleReportFile(f); }} />
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) abrirRecorte(f, 'reportar'); e.target.value = ''; }} />
             <input ref={fileReportGalleryRef} type="file" accept="image/*" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleReportFile(f); }} />
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) abrirRecorte(f, 'reportar'); e.target.value = ''; }} />
 
             {/* Foto */}
             <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center bg-white">
