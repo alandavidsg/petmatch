@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { PawPrint, Search, Megaphone, Camera, MapPin, Loader2, Lightbulb, Coins } from 'lucide-react';
+import { PawPrint, Search, Megaphone, Camera, MapPin, Loader2, Lightbulb, Coins, CheckCircle } from 'lucide-react';
 import exifr from 'exifr';
 import PhotoCropModal from '../components/PhotoCropModal';
 
@@ -67,6 +67,9 @@ export default function PerdidosPage() {
     nombre: '', tipo: '', raza: '', color: '', descripcion: '',
     recompensa: '', contactoNombre: '', telefono: '', email: '',
   });
+
+  // Publicación recién creada, para mostrar la confirmación con enlace a la ficha.
+  const [publicada, setPublicada] = useState<{ id: number | null; nombre: string } | null>(null);
 
   // ── LISTADO ──
   const [lostPets, setLostPets] = useState<LostPet[]>([]);
@@ -244,19 +247,26 @@ export default function PerdidosPage() {
         const { data: urlData } = supabase.storage.from('mascotas-images').getPublicUrl(filename);
         imageUrl = urlData.publicUrl;
       }
-      const { error } = await supabase.from('mascotas_perdidas').insert({
+      // Se pide el id de vuelta para poder enlazar la ficha desde la confirmación.
+      const { data: nueva, error } = await supabase.from('mascotas_perdidas').insert({
         nombre: form.nombre, tipo: form.tipo, raza: form.raza, color: form.color,
         descripcion: form.descripcion, imagen: imageUrl, ultima_ubicacion: location,
         lat: coords?.lat ?? null, lng: coords?.lng ?? null,
         recompensa: form.recompensa ? parseInt(form.recompensa) : 0,
         contacto_nombre: form.contactoNombre, contacto_telefono: form.telefono, contacto_email: form.email,
-      });
+      }).select('id').single();
       if (!error) {
+        setPublicada({ id: nueva?.id ?? null, nombre: form.nombre || form.tipo || 'Tu mascota' });
+        // Limpiar el formulario: si no, al volver a la pestaña de reportar
+        // quedaban cargados los datos de la publicación anterior y era fácil
+        // publicarla dos veces sin querer.
+        setForm({ nombre: '', tipo: '', raza: '', color: '', descripcion: '', recompensa: '', contactoNombre: '', telefono: '', email: '' });
+        setReportFile(null);
+        setReportPreview(null);
         setSubmitted(true);
         setTab('buscar');
-        // El cambio de pestaña no mueve el scroll: quien publicó desde el final
-        // del formulario quedaba a media página de la pestaña de búsqueda, sin
-        // señal de que su publicación se guardó.
+        // El navegador conserva el scroll al cambiar de pestaña: sin esto, quien
+        // publicó desde el final del formulario no llegaba a ver la confirmación.
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => setSubmitted(false), 100);
       }
@@ -285,7 +295,36 @@ export default function PerdidosPage() {
 
       {/* Tabs */}
       <div className="max-w-3xl mx-auto px-6 mt-8">
-        <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-100 mb-8">
+        {publicada && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center mb-8">
+            <div className="flex justify-center mb-4"><CheckCircle size={56} className="text-green-500" /></div>
+            <h2 className="text-xl font-semibold text-[#1a1a2e] mb-2">
+              ¡{publicada.nombre} fue publicada!
+            </h2>
+            <p className="text-gray-400 text-sm max-w-sm mx-auto">
+              Ya aparece en el listado de abajo para que la comunidad pueda reconocerla.
+              Comparte el enlace para que llegue a más gente.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 mt-6 max-w-sm mx-auto">
+              {publicada.id && (
+                <a
+                  href={`/perdidos/${publicada.id}`}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition text-sm flex items-center justify-center"
+                >
+                  Ver publicación
+                </a>
+              )}
+              <button
+                onClick={() => setPublicada(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-3 rounded-xl transition text-sm"
+              >
+                Volver
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className={`flex bg-white rounded-2xl p-1 shadow-sm border border-gray-100 mb-8 ${publicada ? 'hidden' : ''}`}>
           <button onClick={() => setTab('buscar')}
             className={`flex-1 py-3 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 ${tab === 'buscar' ? 'bg-[#1a1a2e] text-white' : 'text-gray-400 hover:text-gray-600'}`}>
             <Search size={15} /> Buscar en catálogo con IA
@@ -297,7 +336,7 @@ export default function PerdidosPage() {
         </div>
 
         {/* ── TAB BUSCAR ── */}
-        {tab === 'buscar' && (
+        {!publicada && tab === 'buscar' && (
           <div>
             {/* Inputs ocultos: cámara y galería separados */}
             <input ref={fileSearchCameraRef} type="file" accept="image/*" capture="environment" className="hidden"
@@ -409,7 +448,7 @@ export default function PerdidosPage() {
         )}
 
         {/* ── TAB REPORTAR ── */}
-        {tab === 'reportar' && (
+        {!publicada && tab === 'reportar' && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-5 pb-10">
             {/* Inputs ocultos: cámara y galería separados */}
             <input ref={fileReportCameraRef} type="file" accept="image/*" capture="environment" className="hidden"
