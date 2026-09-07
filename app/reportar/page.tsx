@@ -23,6 +23,15 @@ export default function ReportarPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Al publicar, el aviso de éxito reemplaza al formulario pero el navegador
+  // conserva la posición del scroll: quien llenó un formulario largo y publicó
+  // desde abajo se quedaba mirando una zona vacía, sin saber si había resultado,
+  // hasta que la redirección se lo llevaba 1,5s después. Subir la vista deja el
+  // aviso a la vista.
+  useEffect(() => {
+    if (submitted) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [submitted]);
+
   // Adopción urgente: se ofrece cuando la edad es Cachorro o Senior
   const [urgente, setUrgente] = useState(false);
   const esUrgenteElegible = (edad: string) => edad === 'Cachorro' || edad === 'Senior';

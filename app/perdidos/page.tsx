@@ -254,6 +254,10 @@ export default function PerdidosPage() {
       if (!error) {
         setSubmitted(true);
         setTab('buscar');
+        // El cambio de pestaña no mueve el scroll: quien publicó desde el final
+        // del formulario quedaba a media página de la pestaña de búsqueda, sin
+        // señal de que su publicación se guardó.
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => setSubmitted(false), 100);
       }
     } catch (err) { console.error(err); }
